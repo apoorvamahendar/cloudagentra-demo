@@ -27,7 +27,7 @@ def _ok(body, status=200):
     return {"statusCode": status, "headers": CORS_HEADERS, "body": json.dumps(body)}
 
 
-def handler(event, context):
+def lambda_handler(event, context):
     method = (event.get("requestContext", {}).get("http", {}).get("method") or "GET").upper()
     path = event.get("rawPath") or "/"
 
