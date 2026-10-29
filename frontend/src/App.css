@@ -1,0 +1,89 @@
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #f5f7fa;
+  margin: 0;
+  color: #0f172a;
+}
+
+.wrap {
+  max-width: 520px;
+  margin: 60px auto;
+  padding: 32px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+}
+
+h1 {
+  font-size: 20px;
+  margin: 0 0 24px;
+}
+
+form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+button {
+  padding: 10px 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:hover {
+  background: #2563eb;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+li button {
+  background: transparent;
+  color: #ef4444;
+  padding: 4px 10px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+li button:hover {
+  background: #fef2f2;
+}
+
+.hint {
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+  margin: 24px 0 0;
+}
