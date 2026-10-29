@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cloud Agentra Demo — Todos</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+           background: #f5f7fa; margin: 0; color: #0f172a; }
+    .wrap { max-width: 520px; margin: 60px auto; padding: 32px;
+            background: #ffffff; border-radius: 12px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05); }
+    h1 { font-size: 20px; margin: 0 0 24px; }
+    form { display: flex; gap: 8px; margin-bottom: 20px; }
+    input { flex: 1; padding: 10px 12px; border: 1px solid #e2e8f0;
+            border-radius: 8px; font-size: 14px; outline: none; }
+    input:focus { border-color: #3b82f6;
+                  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+    button { padding: 10px 16px; background: #3b82f6; color: white;
+             border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
+    button:hover { background: #2563eb; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { display: flex; justify-content: space-between; align-items: center;
+         padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 8px;
+         margin-bottom: 8px; }
+    li button { background: transparent; color: #ef4444;
+                padding: 4px 10px; font-size: 18px; line-height: 1; }
+    li button:hover { background: #fef2f2; }
+    .hint { color: #64748b; font-size: 14px; text-align: center; margin: 24px 0 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Cloud Agentra Demo — Todos</h1>
+    <form id="addForm">
+      <input id="text" placeholder="What needs doing?" autocomplete="off" />
+      <button type="submit">Add</button>
+    </form>
+    <ul id="list"></ul>
+    <p id="hint" class="hint">Loading…</p>
+  </div>
+
+  <script>
+    // Cloud Agentra replaces __API_URL__ with the Lambda Function URL at
+    // deploy time (see README). Keep the sentinel exactly as-is.
+    const API = "__API_URL__";
+
+    const listEl = document.getElementById("list");
+    const hintEl = document.getElementById("hint");
+    const textEl = document.getElementById("text");
+
+    async function load() {
+      hintEl.textContent = "Loading…";
+      listEl.innerHTML = "";
+      try {
+        const r = await fetch(`${API}/todos`);
+        const todos = await r.json();
+        if (!Array.isArray(todos) || todos.length === 0) {
+          hintEl.textContent = "No todos yet — add one above.";
+          return;
+        }
+        hintEl.textContent = "";
+        for (const t of todos) {
+          const li = document.createElement("li");
+          const span = document.createElement("span");
+          span.textContent = t.text;
+          const btn = document.createElement("button");
+          btn.textContent = "×";
+          btn.onclick = () => remove(t.id);
+          li.append(span, btn);
+          listEl.append(li);
+        }
+      } catch (e) {
+        hintEl.textContent = "Could not reach API: " + e.message;
+      }
+    }
+
+    async function add(e) {
+      e.preventDefault();
+      const text = textEl.value.trim();
+      if (!text) return;
+      await fetch(`${API}/todos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      textEl.value = "";
+      load();
+    }
+
+    async function remove(id) {
+      await fetch(`${API}/todos/${id}`, { method: "DELETE" });
+      load();
+    }
+
+    document.getElementById("addForm").addEventListener("submit", add);
+    load();
+  </script>
+</body>
+</html>

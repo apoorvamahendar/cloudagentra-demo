@@ -1,35 +1,29 @@
-# Cloud Agentra Demo — Todo App
+# Cloud Agentra Demo — Todo App (serverless)
 
-Simple full-stack todo app for demonstrating a GitHub → AWS deployment via Cloud Agentra.
+A tiny full-stack todo app for demonstrating GitHub → AWS deployment via
+Cloud Agentra. No Docker, no containers, no build step — everything
+deploys straight from source files.
 
 ## Structure
-- `frontend/` — React (deploys as static files to S3 + CloudFront)
-- `backend/` — FastAPI with 3 endpoints (deploys as a container to ECS Fargate)
-- Uses DynamoDB for persistence
 
-## Local run (optional)
-
-### Backend
-```
-cd backend
-pip install -r requirements.txt
-export TODOS_TABLE=my-local-todos   # or use dynamodb-local
-uvicorn main:app --reload
-```
-
-### Frontend
-```
-cd frontend
-npm install
-REACT_APP_API_URL=http://localhost:8000 npm start
-```
+- `backend/handler.py` — Python Lambda, invoked via a Function URL
+- `frontend/index.html` — single static HTML page with inline JS
+- Storage: DynamoDB table `cloudagentra-demo-todos`
 
 ## Deploy via Cloud Agentra
 
-1. Connect this repo under Settings → Version control
+1. Connect this repo under **Settings → Version control**
 2. Open a chat and send:
 
-   > Deploy this todo app to AWS ap-south-1. Backend: ECS Fargate behind an ALB, container built from `/backend/Dockerfile`, pushed to ECR. Frontend: static build from `/frontend` served from S3 + CloudFront. Storage: DynamoDB table `cloudagentra-demo-todos` with partition key `id` (string). Wire the frontend's `REACT_APP_API_URL` build-arg to the ALB DNS.
+   > Deploy this todo app to AWS ap-south-1. Backend: Python Lambda from
+   > `/backend/handler.py` with a Function URL (public, no auth), runtime
+   > `python3.12`, env var `TODOS_TABLE=cloudagentra-demo-todos`. Storage:
+   > DynamoDB table `cloudagentra-demo-todos` with partition key `id`
+   > (string), grant the Lambda read/write access. Frontend: upload
+   > `/frontend/index.html` to an S3 bucket configured for static website
+   > hosting (public read). Before uploading, replace the string
+   > `__API_URL__` in the HTML with the Lambda Function URL.
 
-3. Review plan → Approve → Watch apply
-4. To demo rollback: `destroy this stack` or `remove the ECS service`
+3. Review plan → **Approve** → watch apply
+4. Open the S3 website URL in the browser — add/remove todos
+5. Demo rollback: `destroy this stack`
