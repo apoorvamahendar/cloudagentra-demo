@@ -1,33 +1,37 @@
-resource "aws_s3_bucket" "bucket_v3" {
-  bucket = "bk-2878901283-v3"
+resource "aws_s3_bucket" "cloudagentra_storage_bucket" {
+  bucket = "cloudagentra-storage-bucket-287563e"
 }
 
-resource "aws_s3_bucket_ownership_controls" "bucket_v3" {
-  bucket = aws_s3_bucket.bucket_v3.id
-
-  rule {
-    object_ownership = "BucketOwnerEnforced"
+resource "aws_s3_bucket_versioning" "cloudagentra_storage_versioning" {
+  bucket = aws_s3_bucket.cloudagentra_storage_bucket.id
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "bucket_v3" {
-  bucket                  = aws_s3_bucket.bucket_v3.id
+resource "aws_s3_bucket_public_access_block" "cloudagentra_storage_public_block" {
+  bucket                  = aws_s3_bucket.cloudagentra_storage_bucket.id
   block_public_acls       = true
-  block_public_policy     = true
   ignore_public_acls      = true
+  block_public_policy     = true
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "bucket_v3" {
-  bucket = aws_s3_bucket.bucket_v3.id
+resource "aws_s3_bucket" "second_bucket" {
+  bucket = "bucket-298973654092390992"
+}
 
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
+resource "aws_s3_bucket_versioning" "second_versioning" {
+  bucket = aws_s3_bucket.second_bucket.id
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
-output "remaining_bucket_id" {
-  value = aws_s3_bucket.bucket_v3.id
+resource "aws_s3_bucket_public_access_block" "second_public_block" {
+  bucket                  = aws_s3_bucket.second_bucket.id
+  block_public_acls       = true
+  ignore_public_acls      = true
+  block_public_policy     = true
+  restrict_public_buckets = true
 }
