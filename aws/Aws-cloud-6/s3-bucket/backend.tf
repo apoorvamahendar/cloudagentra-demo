@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket       = "cloudagentra-state-444062204915-aws-cloud-6-apoorva"
+    bucket       = "aws-site-100"
     key          = "cloudagentra/s3-bucket/terraform.tfstate"
     region       = "ap-south-1"
     use_lockfile = true
