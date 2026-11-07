@@ -1,0 +1,1 @@
+{"operation": "create", "target_addresses": ["tls_private_key.web_server_tls_key", "local_sensitive_file.web_server_pem", "aws_key_pair.web_server_key", "data.aws_ami.ubuntu_2204", "aws_instance.web_server_instance"]}
