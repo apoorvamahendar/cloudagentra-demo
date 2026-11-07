@@ -6,3 +6,5 @@ __pycache__/
 build/
 dist/
 .DS_Store
+# OpenTofu provider cache (keep out of the repo)
+**/.tf_data/*
