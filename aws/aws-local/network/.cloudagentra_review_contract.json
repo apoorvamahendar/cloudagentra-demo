@@ -1,1 +1,1 @@
-{"operation": "create", "target_addresses": ["aws_vpc.web_server_vpc", "aws_subnet.web_server_public_subnet", "aws_internet_gateway.web_server_igw", "aws_route_table.web_server_public_rtb", "aws_route_table_association.web_server_rtb_association", "aws_security_group.web_server_sg"]}
+{"operation": "delete", "target_addresses": ["aws_route_table_association.web_server_rtb_association", "aws_route_table.web_server_public_rtb", "aws_internet_gateway.web_server_igw", "aws_security_group.web_server_sg", "aws_subnet.web_server_public_subnet", "aws_vpc.web_server_vpc"]}
