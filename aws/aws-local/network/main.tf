@@ -68,3 +68,36 @@ resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# S3 bucket - private, encrypted, versioning disabled
+# ─────────────────────────────────────────────────────────────────────────────
+
+resource "aws_s3_bucket" "bk_123617919" {
+  bucket        = "bk-123617919"
+  force_destroy = true
+
+  tags = {
+    Name  = "bk-123617919"
+    Stack = "network"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "bk_123617919_public_access_block" {
+  bucket = aws_s3_bucket.bk_123617919.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "bk_123617919_sse" {
+  bucket = aws_s3_bucket.bk_123617919.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
