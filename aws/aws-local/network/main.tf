@@ -1,65 +1,79 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# EXISTING RESOURCES - preserved exactly as deployed
-# ─────────────────────────────────────────────────────────────────────────────
-
-resource "aws_vpc" "main_vpc" {
+# ============================================================
+# aws_vpc - web-server-vpc
+# ============================================================
+resource "aws_vpc" "web_server_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
 
   tags = {
-    Name  = "my-app-vpc"
+    Name  = "web-server-vpc"
     Stack = "network"
   }
 }
 
-resource "aws_subnet" "public_subnet" {
-  vpc_id                  = aws_vpc.main_vpc.id
+# ============================================================
+# aws_subnet - web-server-public-subnet
+# ============================================================
+resource "aws_subnet" "web_server_public_subnet" {
+  vpc_id                  = aws_vpc.web_server_vpc.id
   cidr_block              = "10.0.1.0/24"
   availability_zone       = "ap-south-1a"
   map_public_ip_on_launch = true
 
   tags = {
-    Name  = "my-app-subnet-public"
+    Name  = "web-server-public-subnet"
     Stack = "network"
   }
 }
 
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main_vpc.id
+# ============================================================
+# aws_internet_gateway - web-server-igw
+# ============================================================
+resource "aws_internet_gateway" "web_server_igw" {
+  vpc_id = aws_vpc.web_server_vpc.id
 
   tags = {
-    Name  = "my-app-igw"
+    Name  = "web-server-igw"
     Stack = "network"
   }
 }
 
-resource "aws_route_table" "public_rt" {
-  vpc_id = aws_vpc.main_vpc.id
+# ============================================================
+# aws_route_table - web-server-public-rtb
+# ============================================================
+resource "aws_route_table" "web_server_public_rtb" {
+  vpc_id = aws_vpc.web_server_vpc.id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
+    gateway_id = aws_internet_gateway.web_server_igw.id
   }
 
   tags = {
-    Name  = "my-app-public-rt"
+    Name  = "web-server-public-rtb"
     Stack = "network"
   }
 }
 
-resource "aws_route_table_association" "public_rt_assoc" {
-  subnet_id      = aws_subnet.public_subnet.id
-  route_table_id = aws_route_table.public_rt.id
+# ============================================================
+# aws_route_table_association - web-server-public-rtb-association
+# ============================================================
+resource "aws_route_table_association" "web_server_rtb_association" {
+  subnet_id      = aws_subnet.web_server_public_subnet.id
+  route_table_id = aws_route_table.web_server_public_rtb.id
 }
 
-resource "aws_security_group" "web_ssh_sg" {
-  name        = "my-app-web-ssh-sg"
-  description = "Allow inbound HTTP (80) and SSH (22) from anywhere"
-  vpc_id      = aws_vpc.main_vpc.id
+# ============================================================
+# aws_security_group - web-server-sg
+# ============================================================
+resource "aws_security_group" "web_server_sg" {
+  name        = "web-server-sg"
+  description = "Allow inbound SSH and HTTP; allow all outbound"
+  vpc_id      = aws_vpc.web_server_vpc.id
 
   ingress {
-    description = "SSH"
+    description = "SSH from anywhere"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -67,7 +81,7 @@ resource "aws_security_group" "web_ssh_sg" {
   }
 
   ingress {
-    description = "HTTP"
+    description = "HTTP from anywhere"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -83,187 +97,35 @@ resource "aws_security_group" "web_ssh_sg" {
   }
 
   tags = {
-    Name  = "my-app-web-ssh-sg"
+    Name  = "web-server-sg"
     Stack = "network"
   }
 }
 
-resource "aws_s3_bucket" "bk_123617919" {
-  bucket        = "bk-123617919"
-  force_destroy = true
-
-  tags = {
-    Name  = "bk-123617919"
-    Stack = "network"
-  }
+# ============================================================
+# Outputs - consumed by the compute stack via data sources
+# ============================================================
+output "vpc_id" {
+  description = "ID of the web-server VPC"
+  value       = aws_vpc.web_server_vpc.id
 }
 
-resource "aws_s3_bucket_public_access_block" "bk_123617919_public_access_block" {
-  bucket = aws_s3_bucket.bk_123617919.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+output "public_subnet_id" {
+  description = "ID of the web-server public subnet"
+  value       = aws_subnet.web_server_public_subnet.id
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "bk_123617919_sse" {
-  bucket = aws_s3_bucket.bk_123617919.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
+output "internet_gateway_id" {
+  description = "ID of the web-server Internet Gateway"
+  value       = aws_internet_gateway.web_server_igw.id
 }
 
-data "aws_vpc" "web_server" {
-  filter {
-    name   = "tag:Name"
-    values = ["web-server-vpc"]
-  }
-
-  filter {
-    name   = "cidr"
-    values = ["10.0.0.0/16"]
-  }
-
-  filter {
-    name   = "state"
-    values = ["available"]
-  }
+output "route_table_id" {
+  description = "ID of the web-server public route table"
+  value       = aws_route_table.web_server_public_rtb.id
 }
 
-data "aws_internet_gateway" "web_server" {
-  filter {
-    name   = "attachment.vpc-id"
-    values = [data.aws_vpc.web_server.id]
-  }
-}
-
-resource "aws_subnet" "public" {
-  vpc_id                  = data.aws_vpc.web_server.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "ap-south-1a"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name  = "web-server-subnet-public"
-    Stack = "network"
-  }
-}
-
-resource "aws_route_table" "public" {
-  vpc_id = data.aws_vpc.web_server.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = data.aws_internet_gateway.web_server.id
-  }
-
-  tags = {
-    Name  = "web-server-rtb-public"
-    Stack = "network"
-  }
-}
-
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
-  route_table_id = aws_route_table.public.id
-}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# NEW RESOURCES - ubuntu-web networking stack
-# ─────────────────────────────────────────────────────────────────────────────
-
-# VPC: ubuntu-web-vpc
-resource "aws_vpc" "ubuntu_web_vpc" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_support   = true
-  enable_dns_hostnames = true
-
-  tags = {
-    Name  = "ubuntu-web-vpc"
-    Stack = "network"
-  }
-}
-
-# Public Subnet: ubuntu-web-subnet-public
-resource "aws_subnet" "ubuntu_web_subnet_public" {
-  vpc_id                  = aws_vpc.ubuntu_web_vpc.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "ap-south-1a"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name  = "ubuntu-web-subnet-public"
-    Stack = "network"
-  }
-}
-
-# Internet Gateway: ubuntu-web-igw
-resource "aws_internet_gateway" "ubuntu_web_igw" {
-  vpc_id = aws_vpc.ubuntu_web_vpc.id
-
-  tags = {
-    Name  = "ubuntu-web-igw"
-    Stack = "network"
-  }
-}
-
-# Route Table: ubuntu-web-rtb-public - default route via IGW
-resource "aws_route_table" "ubuntu_web_rtb_public" {
-  vpc_id = aws_vpc.ubuntu_web_vpc.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.ubuntu_web_igw.id
-  }
-
-  tags = {
-    Name  = "ubuntu-web-rtb-public"
-    Stack = "network"
-  }
-}
-
-# Route Table Association: ubuntu-web-rtb-public → ubuntu-web-subnet-public
-resource "aws_route_table_association" "ubuntu_web_rtb_assoc" {
-  subnet_id      = aws_subnet.ubuntu_web_subnet_public.id
-  route_table_id = aws_route_table.ubuntu_web_rtb_public.id
-}
-
-# Security Group: ubuntu-web-sg - HTTP (80) and SSH (22) inbound; all outbound
-resource "aws_security_group" "ubuntu_web_sg" {
-  name        = "ubuntu-web-sg"
-  description = "Allow inbound HTTP (80) and SSH (22) from anywhere; all outbound"
-  vpc_id      = aws_vpc.ubuntu_web_vpc.id
-
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    description = "Allow all outbound"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name  = "ubuntu-web-sg"
-    Stack = "network"
-  }
+output "security_group_id" {
+  description = "ID of the web-server security group"
+  value       = aws_security_group.web_server_sg.id
 }
