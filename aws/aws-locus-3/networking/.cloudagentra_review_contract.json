@@ -1,0 +1,1 @@
+{"operation": "create", "target_addresses": ["aws_eip_association.ubuntu_web_eip_assoc"]}
