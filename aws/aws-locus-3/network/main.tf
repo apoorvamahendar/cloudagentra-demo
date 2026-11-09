@@ -1,8 +1,6 @@
-# ─────────────────────────────────────────────
-# Data sources
-# ─────────────────────────────────────────────
+# ─── Data sources ────────────────────────────────────────────────────────────
 
-# Resolve the latest Ubuntu 22.04 LTS AMI in ap-south-1
+# Resolve the latest Ubuntu 22.04 LTS AMI published by Canonical
 data "aws_ami" "ubuntu_22_04" {
   most_recent = true
   owners      = ["099720109477"] # Canonical
@@ -21,21 +19,14 @@ data "aws_ami" "ubuntu_22_04" {
     name   = "root-device-type"
     values = ["ebs"]
   }
-
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
-  }
 }
 
-# Look up the key pair already created by the compute stack
+# Look up the already-deployed key pair (created by the 'compute' stack)
 data "aws_key_pair" "ubuntu_web_key" {
   key_name = "ubuntu-web-key"
 }
 
-# ─────────────────────────────────────────────
-# VPC
-# ─────────────────────────────────────────────
+# ─── VPC ─────────────────────────────────────────────────────────────────────
 
 resource "aws_vpc" "ubuntu_web_vpc" {
   cidr_block           = "10.0.0.0/16"
@@ -48,9 +39,7 @@ resource "aws_vpc" "ubuntu_web_vpc" {
   }
 }
 
-# ─────────────────────────────────────────────
-# Public Subnet
-# ─────────────────────────────────────────────
+# ─── Public subnet ───────────────────────────────────────────────────────────
 
 resource "aws_subnet" "ubuntu_web_subnet_public" {
   vpc_id                  = aws_vpc.ubuntu_web_vpc.id
@@ -64,9 +53,7 @@ resource "aws_subnet" "ubuntu_web_subnet_public" {
   }
 }
 
-# ─────────────────────────────────────────────
-# Internet Gateway
-# ─────────────────────────────────────────────
+# ─── Internet Gateway ────────────────────────────────────────────────────────
 
 resource "aws_internet_gateway" "ubuntu_web_igw" {
   vpc_id = aws_vpc.ubuntu_web_vpc.id
@@ -77,9 +64,7 @@ resource "aws_internet_gateway" "ubuntu_web_igw" {
   }
 }
 
-# ─────────────────────────────────────────────
-# Route Table
-# ─────────────────────────────────────────────
+# ─── Route table ─────────────────────────────────────────────────────────────
 
 resource "aws_route_table" "ubuntu_web_rtb_public" {
   vpc_id = aws_vpc.ubuntu_web_vpc.id
@@ -95,22 +80,16 @@ resource "aws_route_table" "ubuntu_web_rtb_public" {
   }
 }
 
-# ─────────────────────────────────────────────
-# Route Table Association
-# ─────────────────────────────────────────────
-
 resource "aws_route_table_association" "ubuntu_web_rtb_assoc" {
   subnet_id      = aws_subnet.ubuntu_web_subnet_public.id
   route_table_id = aws_route_table.ubuntu_web_rtb_public.id
 }
 
-# ─────────────────────────────────────────────
-# Security Group (shell - rules managed separately)
-# ─────────────────────────────────────────────
+# ─── Security group ──────────────────────────────────────────────────────────
 
 resource "aws_security_group" "ubuntu_web_sg" {
   name        = "ubuntu-web-sg"
-  description = "Allow HTTP and SSH inbound; all outbound"
+  description = "Allow HTTP (80) and SSH (22) inbound; all outbound"
   vpc_id      = aws_vpc.ubuntu_web_vpc.id
 
   tags = {
@@ -119,8 +98,7 @@ resource "aws_security_group" "ubuntu_web_sg" {
   }
 }
 
-# Inbound - HTTP (port 80)
-resource "aws_vpc_security_group_ingress_rule" "ubuntu_web_sg_ingress_http" {
+resource "aws_vpc_security_group_ingress_rule" "ubuntu_web_sg_http" {
   security_group_id = aws_security_group.ubuntu_web_sg.id
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 80
@@ -129,13 +107,12 @@ resource "aws_vpc_security_group_ingress_rule" "ubuntu_web_sg_ingress_http" {
   description       = "Allow HTTP from anywhere"
 
   tags = {
-    Name  = "ubuntu-web-sg-ingress-http"
+    Name  = "ubuntu-web-sg-http"
     Stack = "network"
   }
 }
 
-# Inbound - SSH (port 22)
-resource "aws_vpc_security_group_ingress_rule" "ubuntu_web_sg_ingress_ssh" {
+resource "aws_vpc_security_group_ingress_rule" "ubuntu_web_sg_ssh" {
   security_group_id = aws_security_group.ubuntu_web_sg.id
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 22
@@ -144,12 +121,11 @@ resource "aws_vpc_security_group_ingress_rule" "ubuntu_web_sg_ingress_ssh" {
   description       = "Allow SSH from anywhere"
 
   tags = {
-    Name  = "ubuntu-web-sg-ingress-ssh"
+    Name  = "ubuntu-web-sg-ssh"
     Stack = "network"
   }
 }
 
-# Outbound - all traffic
 resource "aws_vpc_security_group_egress_rule" "ubuntu_web_sg_egress_all" {
   security_group_id = aws_security_group.ubuntu_web_sg.id
   cidr_ipv4         = "0.0.0.0/0"
@@ -162,9 +138,7 @@ resource "aws_vpc_security_group_egress_rule" "ubuntu_web_sg_egress_all" {
   }
 }
 
-# ─────────────────────────────────────────────
-# EC2 Instance
-# ─────────────────────────────────────────────
+# ─── EC2 instance ────────────────────────────────────────────────────────────
 
 resource "aws_instance" "ubuntu_web_server" {
   ami                    = data.aws_ami.ubuntu_22_04.id
@@ -173,10 +147,7 @@ resource "aws_instance" "ubuntu_web_server" {
   vpc_security_group_ids = [aws_security_group.ubuntu_web_sg.id]
   key_name               = data.aws_key_pair.ubuntu_web_key.key_name
 
-  depends_on = [
-    aws_internet_gateway.ubuntu_web_igw,
-    aws_route_table_association.ubuntu_web_rtb_assoc,
-  ]
+  depends_on = [aws_internet_gateway.ubuntu_web_igw]
 
   tags = {
     Name  = "ubuntu-web-server"
@@ -184,9 +155,7 @@ resource "aws_instance" "ubuntu_web_server" {
   }
 }
 
-# ─────────────────────────────────────────────
-# Elastic IP
-# ─────────────────────────────────────────────
+# ─── Elastic IP ──────────────────────────────────────────────────────────────
 
 resource "aws_eip" "ubuntu_web_eip" {
   domain   = "vpc"
@@ -200,41 +169,39 @@ resource "aws_eip" "ubuntu_web_eip" {
   }
 }
 
-# ─────────────────────────────────────────────
-# Outputs
-# ─────────────────────────────────────────────
+# ─── Outputs ─────────────────────────────────────────────────────────────────
 
 output "vpc_id" {
-  description = "ID of the ubuntu-web-vpc VPC"
+  description = "ID of the VPC"
   value       = aws_vpc.ubuntu_web_vpc.id
 }
 
-output "subnet_id" {
-  description = "ID of the ubuntu-web-subnet-public subnet"
+output "subnet_public_id" {
+  description = "ID of the public subnet"
   value       = aws_subnet.ubuntu_web_subnet_public.id
 }
 
 output "internet_gateway_id" {
-  description = "ID of the ubuntu-web-igw internet gateway"
+  description = "ID of the Internet Gateway"
   value       = aws_internet_gateway.ubuntu_web_igw.id
 }
 
 output "security_group_id" {
-  description = "ID of the ubuntu-web-sg security group"
+  description = "ID of the web security group"
   value       = aws_security_group.ubuntu_web_sg.id
 }
 
 output "instance_id" {
-  description = "Instance ID of ubuntu-web-server"
+  description = "ID of the EC2 instance"
   value       = aws_instance.ubuntu_web_server.id
 }
 
-output "public_ip" {
-  description = "Public IP address of ubuntu-web-server (via Elastic IP)"
+output "elastic_ip" {
+  description = "Static public Elastic IP address assigned to the instance"
   value       = aws_eip.ubuntu_web_eip.public_ip
 }
 
 output "ssh_command" {
-  description = "SSH command to connect to ubuntu-web-server"
+  description = "SSH command to connect to the instance (requires ubuntu-web-key.pem)"
   value       = "ssh -i ubuntu-web-key.pem ubuntu@${aws_eip.ubuntu_web_eip.public_ip}"
 }
