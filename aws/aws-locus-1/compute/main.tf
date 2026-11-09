@@ -1,20 +1,18 @@
-# ---------------------------------------------------------------------------
-# Data sources - look up resources already deployed by the 'network' stack
-# ---------------------------------------------------------------------------
+# ─── TLS provider required for key generation ───────────────────────────────
+# ─── Data sources - look up network resources already deployed by the network stack ───
 
-data "aws_subnet" "web_server_public_subnet" {
+data "aws_subnet" "vpc111_public_subnet_1" {
   filter {
     name   = "tag:Name"
     values = ["web-server-public-subnet"]
   }
 }
 
-data "aws_security_group" "web_server_sg" {
-  filter {
-    name   = "group-name"
-    values = ["web-server-sg"]
-  }
+data "aws_security_group" "vpc111_sg" {
+  name = "web-server-sg"
 }
+
+# ─── Resolve latest Ubuntu 22.04 LTS AMI in ap-south-1 ──────────────────────
 
 data "aws_ami" "ubuntu_22_04" {
   most_recent = true
@@ -31,58 +29,57 @@ data "aws_ami" "ubuntu_22_04" {
   }
 
   filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+
+  filter {
     name   = "architecture"
     values = ["x86_64"]
   }
 }
 
-# ---------------------------------------------------------------------------
-# TLS key pair - 4096-bit RSA, generated locally
-# ---------------------------------------------------------------------------
+# ─── Generate RSA 4096-bit private key ──────────────────────────────────────
 
-resource "tls_private_key" "web_server_key" {
+resource "tls_private_key" "vpc111_tls_key" {
   algorithm = "RSA"
   rsa_bits  = 4096
 }
 
-# ---------------------------------------------------------------------------
-# AWS key pair - register public key with AWS
-# ---------------------------------------------------------------------------
+# ─── Register public key with AWS ───────────────────────────────────────────
 
-resource "aws_key_pair" "web_server_kp" {
-  key_name   = "web-server-keypair"
-  public_key = tls_private_key.web_server_key.public_key_openssh
+resource "aws_key_pair" "vpc111_key" {
+  key_name   = "vpc111-key"
+  public_key = tls_private_key.vpc111_tls_key.public_key_openssh
 
   tags = {
-    Name  = "web-server-keypair"
+    Name  = "vpc111-key"
     Stack = "compute"
   }
 }
 
-# ---------------------------------------------------------------------------
-# Local .pem file - write private key for SSH access
-# ---------------------------------------------------------------------------
+# ─── Write private key to vpc111-key.pem locally (chmod 400) ────────────────
 
-resource "local_file" "web_server_pem" {
-  content         = tls_private_key.web_server_key.private_key_pem
-  filename        = "web-server-key.pem"
+resource "local_sensitive_file" "vpc111_pem" {
+  content         = tls_private_key.vpc111_tls_key.private_key_pem
+  filename        = "${path.module}/vpc111-key.pem"
   file_permission = "0400"
 }
 
-# ---------------------------------------------------------------------------
-# EC2 instance - Ubuntu 22.04 LTS, t2.micro, public subnet
-# ---------------------------------------------------------------------------
+# ─── EC2 instance - Ubuntu 22.04 LTS, t2.micro, public subnet ───────────────
 
-resource "aws_instance" "web_server" {
-  ami                    = data.aws_ami.ubuntu_22_04.id
-  instance_type          = "t2.micro"
-  subnet_id              = data.aws_subnet.web_server_public_subnet.id
-  vpc_security_group_ids = [data.aws_security_group.web_server_sg.id]
-  key_name               = aws_key_pair.web_server_kp.key_name
+resource "aws_instance" "vpc111_ec2" {
+  ami                         = data.aws_ami.ubuntu_22_04.id
+  instance_type               = "t2.micro"
+  subnet_id                   = data.aws_subnet.vpc111_public_subnet_1.id
+  vpc_security_group_ids      = [data.aws_security_group.vpc111_sg.id]
+  key_name                    = aws_key_pair.vpc111_key.key_name
   associate_public_ip_address = true
 
   tags = {
-    Name  = "web-server-ec2"
+    Name  = "vpc111-ec2"
     Stack = "compute"
   }
+
+  depends_on = [aws_key_pair.vpc111_key]
 }
