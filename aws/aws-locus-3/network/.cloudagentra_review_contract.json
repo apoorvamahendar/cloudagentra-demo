@@ -1,0 +1,1 @@
+{"operation": "create", "target_addresses": ["aws_vpc.ubuntu_web_vpc", "aws_subnet.ubuntu_web_subnet_public", "aws_internet_gateway.ubuntu_web_igw", "aws_route_table.ubuntu_web_rtb_public", "aws_route_table_association.ubuntu_web_rtb_assoc", "aws_security_group.ubuntu_web_sg", "aws_instance.ubuntu_web_server", "aws_eip.ubuntu_web_eip"]}
