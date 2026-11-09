@@ -1,0 +1,1 @@
+{"operation": "create", "target_addresses": ["tls_private_key.ubuntu_web_tls_key", "aws_key_pair.ubuntu_web_key"]}
